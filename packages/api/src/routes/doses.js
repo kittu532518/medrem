@@ -139,7 +139,7 @@ export async function doseRoutes(fastify) {
     const fileDir = path.join(UPLOADS_DIR, userId, date);
     ensureDir(fileDir);
 
-    const fileExt = data.mimetype?.includes('png') ? '.png' : '.jpg';
+    const fileExt = data.mimetype?.includes('png') ? '.png' : data.mimetype?.includes('webp') ? '.webp' : '.jpg';
     const fileName = `dose_${generateId()}${fileExt}`;
     const filePath = path.join(fileDir, fileName);
     fs.writeFileSync(filePath, fileBuffer);

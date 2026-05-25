@@ -1,15 +1,3 @@
-/**
- * db.js — @libsql/client (SQLite) adapter with a pg-compatible query() interface.
- *
- * For production with PostgreSQL: replace this file with a pg Pool.
- * The route code uses pool.query(sql, params) and never changes.
- *
- * SQLite compat handled here:
- *   - $1/$2 params       → ? placeholders
- *   - JSONB / TEXT[]     → JSON.stringify / JSON.parse
- *   - UUID generation    → crypto.randomUUID() (use generateId() in routes)
- *   - BOOLEAN            → 0/1 integers
- */
 import { createClient } from '@libsql/client';
 import { randomUUID } from 'crypto';
 import path from 'path';
@@ -22,7 +10,6 @@ fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
 
 const client = createClient({ url: `file:${DB_PATH}` });
 
-// Columns stored as JSON text
 const JSON_COLS = new Set([
   'push_subscription', 'raw_ocr_json', 'ai_validation_result',
   'subscription', 'sessions',
@@ -57,7 +44,7 @@ export const pool = {
       const rows = result.rows.map(deserializeRow);
       return { rows, rowCount: result.rowsAffected ?? rows.length };
     } catch (err) {
-      console.error('[DB ERROR]', err.message, '\nSQL:', converted.substring(0, 120));
+      console.error('[DB ERROR]', err.message, '\nSQL:', converted.substring(0, 200));
       throw err;
     }
   },
@@ -82,6 +69,13 @@ export async function initDb() {
       face_photo_path TEXT,
       is_disabled INTEGER DEFAULT 0,
       consecutive_misses INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT (datetime('now'))
+    )`,
+    `CREATE TABLE IF NOT EXISTS otp_tokens (
+      id TEXT PRIMARY KEY,
+      phone TEXT NOT NULL,
+      otp TEXT NOT NULL,
+      expires_at TEXT NOT NULL,
       created_at TEXT DEFAULT (datetime('now'))
     )`,
     `CREATE TABLE IF NOT EXISTS prescriptions (
@@ -138,16 +132,20 @@ export async function initDb() {
     )`,
   ], 'write');
 
-  // Migrate existing databases
+  // Migrate existing databases — safe no-op if column already exists
   const migrations = [
     `ALTER TABLE users ADD COLUMN face_photo_path TEXT`,
     `ALTER TABLE users ADD COLUMN is_disabled INTEGER DEFAULT 0`,
   ];
   for (const sql of migrations) {
-    try { await client.execute(sql); } catch (_) { /* column already exists */ }
+    try { await client.execute(sql); } catch (_) {}
   }
 
-  // Seed default admin from environment if not present
+  // Clean up expired OTPs on startup
+  try {
+    await client.execute(`DELETE FROM otp_tokens WHERE expires_at <= datetime('now')`);
+  } catch (_) {}
+
   await seedDefaultAdmin();
 
   console.log('[DB] SQLite ready →', DB_PATH);
@@ -164,12 +162,11 @@ async function seedDefaultAdmin() {
       args: [username],
     });
     if (existing.rows.length === 0) {
-      const { randomUUID } = await import('crypto');
       await client.execute({
         sql: 'INSERT INTO admins (id, username, password_hash) VALUES (?, ?, ?)',
         args: [randomUUID(), username, hash],
       });
-      console.log(`[DB] Default admin created: username="${username}" — change ADMIN_PASSWORD in .env`);
+      console.log(`[DB] Default admin created — username: "${username}"`);
     }
-  } catch (_) { /* ignore */ }
+  } catch (_) {}
 }

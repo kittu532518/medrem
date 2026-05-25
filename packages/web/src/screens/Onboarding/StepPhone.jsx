@@ -6,15 +6,18 @@ import { sendOTP, verifyOTP } from '../../api/client.js';
 export default function StepPhone({ onNext, data, setData }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const [phone, setPhone] = useState(data.phone || '');
+
+  const [phone, setPhone]           = useState(data.phone || '');
   const [countryCode, setCountryCode] = useState('+91');
-  const [otp, setOtp] = useState('');
-  const [otpSent, setOtpSent] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [otp, setOtp]               = useState('');
+  const [otpSent, setOtpSent]       = useState(false);
+  const [serverOtp, setServerOtp]   = useState('');   // OTP returned by server (until SMS is live)
+  const [loading, setLoading]       = useState(false);
+  const [error, setError]           = useState('');
 
   const fullPhone = `${countryCode}${phone.replace(/^0+/, '')}`;
 
+  // ── Send OTP ──────────────────────────────────────────────────────────────
   const handleSendOtp = async () => {
     if (!phone || phone.replace(/\D/g, '').length < 10) {
       setError('Please enter a valid 10-digit phone number');
@@ -23,8 +26,14 @@ export default function StepPhone({ onNext, data, setData }) {
     setLoading(true);
     setError('');
     try {
-      await sendOTP(fullPhone);
+      const res = await sendOTP(fullPhone);
       setOtpSent(true);
+      // Server returns otp in response until SMS (Twilio) is configured.
+      // Auto-populate so users don't have to type it.
+      if (res.data?.otp) {
+        setServerOtp(res.data.otp);
+        setOtp(res.data.otp);
+      }
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to send OTP. Please try again.');
     } finally {
@@ -32,8 +41,9 @@ export default function StepPhone({ onNext, data, setData }) {
     }
   };
 
+  // ── Verify OTP ────────────────────────────────────────────────────────────
   const handleVerify = async () => {
-    if (!otp || otp.length !== 6) {
+    if (!otp || otp.replace(/\D/g, '').length !== 6) {
       setError('Please enter the 6-digit OTP');
       return;
     }
@@ -42,23 +52,34 @@ export default function StepPhone({ onNext, data, setData }) {
     try {
       const res = await verifyOTP(fullPhone, otp);
       const { token, user } = res.data;
+
       localStorage.setItem('medrem_token', token);
       localStorage.setItem('medrem_user', JSON.stringify(user));
 
-      // ── Returning user: skip onboarding, go straight to home ──
       if (!user.isNewUser) {
+        // Returning user — skip onboarding entirely
         navigate('/', { replace: true });
         return;
       }
 
-      // ── New user: continue onboarding ──
+      // New user — continue onboarding
       setData(prev => ({ ...prev, phone: fullPhone, userId: user.id, isNewUser: true }));
       onNext();
     } catch (err) {
+      // Note: we changed invalid-OTP to return 400, so the global interceptor
+      // will NOT redirect to /onboarding — the error is shown inline here.
       setError(err.response?.data?.error || 'Invalid OTP. Please try again.');
     } finally {
       setLoading(false);
     }
+  };
+
+  // ── Resend ────────────────────────────────────────────────────────────────
+  const handleResend = () => {
+    setOtpSent(false);
+    setOtp('');
+    setServerOtp('');
+    setError('');
   };
 
   return (
@@ -68,20 +89,21 @@ export default function StepPhone({ onNext, data, setData }) {
           {t('onboarding.step2.title')}
         </h1>
         <p style={{ color: 'var(--color-text-muted)', fontSize: '16px' }}>
-          {t('onboarding.step2.subtitle')}
+          Enter your mobile number to get started
         </p>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-        {/* Phone input with country code */}
+
+        {/* ── Phone input ── */}
         {!otpSent && (
           <div style={{ display: 'flex', gap: '8px' }}>
             <select
               value={countryCode}
               onChange={e => setCountryCode(e.target.value)}
               style={{
-                width: '100px', padding: '12px 8px', border: '2px solid #E8E0D8',
-                borderRadius: '12px', fontSize: '16px', background: 'white',
+                width: '110px', padding: '12px 8px', border: '2px solid #E8E0D8',
+                borderRadius: '12px', fontSize: '15px', background: 'white',
                 color: 'var(--color-text)', fontWeight: '600',
               }}
             >
@@ -96,78 +118,122 @@ export default function StepPhone({ onNext, data, setData }) {
               type="tel"
               value={phone}
               onChange={e => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
-              placeholder="10-digit mobile number"
+              placeholder="10-digit number"
               style={{ flex: 1 }}
               autoFocus
             />
           </div>
         )}
 
+        {/* ── Phone badge (after OTP sent) ── */}
         {otpSent && (
           <div style={{
-            display: 'flex', alignItems: 'center', gap: '8px',
+            display: 'flex', alignItems: 'center', gap: '10px',
             background: '#F9F5F1', borderRadius: '12px', padding: '12px 16px',
           }}>
-            <span style={{ fontSize: '20px' }}>📱</span>
-            <span style={{ fontSize: '15px', fontWeight: '600', color: 'var(--color-text)' }}>
+            <span style={{ fontSize: '22px' }}>📱</span>
+            <span style={{ fontSize: '15px', fontWeight: '700', color: 'var(--color-text)' }}>
               {fullPhone}
             </span>
             <button
-              onClick={() => { setOtpSent(false); setOtp(''); setError(''); }}
-              style={{ marginLeft: 'auto', background: 'none', border: 'none', color: 'var(--color-primary)', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}
+              onClick={handleResend}
+              style={{ marginLeft: 'auto', background: 'none', border: 'none',
+                color: 'var(--color-primary)', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}
             >
               Change
             </button>
           </div>
         )}
 
-        {!otpSent ? (
+        {/* ── Send OTP button ── */}
+        {!otpSent && (
           <button className="btn-primary" onClick={handleSendOtp} disabled={loading}>
-            {loading ? t('common.loading') : t('onboarding.step2.send_otp')}
+            {loading ? 'Sending…' : 'Send OTP'}
           </button>
-        ) : (
+        )}
+
+        {/* ── OTP entry ── */}
+        {otpSent && (
           <>
-            <div style={{
-              background: '#EAF3DE', borderRadius: '10px', padding: '12px 16px',
-              fontSize: '14px', color: 'var(--color-success)', fontWeight: '500',
-            }}>
-              ✓ OTP sent to {fullPhone}
-            </div>
+            {/* OTP hint banner — shown when server returns OTP directly */}
+            {serverOtp ? (
+              <div style={{
+                background: '#EAF3DE', borderRadius: '12px', padding: '14px 16px',
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              }}>
+                <div>
+                  <div style={{ fontSize: '12px', fontWeight: '700', color: '#4A7C59', marginBottom: '4px' }}>
+                    YOUR OTP (auto-filled)
+                  </div>
+                  <div style={{ fontSize: '26px', fontWeight: '800', letterSpacing: '0.25em', color: '#2D5C3A' }}>
+                    {serverOtp}
+                  </div>
+                </div>
+                <button
+                  onClick={() => setOtp(serverOtp)}
+                  style={{
+                    background: '#4A7C59', color: 'white', border: 'none',
+                    borderRadius: '8px', padding: '8px 14px', fontSize: '13px',
+                    fontWeight: '700', cursor: 'pointer',
+                  }}
+                >
+                  Use ↓
+                </button>
+              </div>
+            ) : (
+              <div style={{
+                background: '#EAF3DE', borderRadius: '10px', padding: '12px 16px',
+                fontSize: '14px', color: 'var(--color-success)', fontWeight: '500',
+              }}>
+                ✓ OTP sent to {fullPhone}
+              </div>
+            )}
 
             <input
               type="number"
               value={otp}
               onChange={e => setOtp(e.target.value.slice(0, 6))}
-              placeholder="Enter 6-digit OTP"
+              placeholder="6-digit OTP"
               autoFocus
-              style={{ letterSpacing: '0.3em', textAlign: 'center', fontSize: '24px', fontWeight: '700' }}
+              style={{
+                letterSpacing: '0.3em', textAlign: 'center',
+                fontSize: '28px', fontWeight: '800',
+              }}
             />
 
             <button className="btn-primary" onClick={handleVerify} disabled={loading}>
-              {loading ? 'Verifying…' : 'Verify & Continue'}
+              {loading ? 'Verifying…' : '✓ Verify & Continue'}
             </button>
 
             <button
-              onClick={() => { setOtpSent(false); setOtp(''); setError(''); }}
-              style={{ background: 'none', border: 'none', color: 'var(--color-primary)', cursor: 'pointer', fontSize: '14px' }}
+              onClick={handleResend}
+              style={{ background: 'none', border: 'none', color: 'var(--color-primary)',
+                cursor: 'pointer', fontSize: '14px', fontWeight: '500' }}
             >
-              {t('onboarding.step2.resend')}
+              ↩ Resend OTP
             </button>
           </>
         )}
 
+        {/* ── Error message ── */}
         {error && (
-          <div style={{ color: 'var(--color-failure)', fontSize: '14px', fontWeight: '500', textAlign: 'center' }}>
+          <div style={{
+            background: '#FDECEA', border: '1px solid #F5A0A0',
+            borderRadius: '10px', padding: '12px 16px',
+            color: 'var(--color-failure)', fontSize: '14px', fontWeight: '500', textAlign: 'center',
+          }}>
             {error}
           </div>
         )}
 
+        {/* ── Dev hint ── */}
         <div style={{
           background: 'var(--color-pending-bg)', borderRadius: '10px',
-          padding: '10px 14px', fontSize: '13px', color: 'var(--color-pending)', textAlign: 'center',
+          padding: '10px 14px', fontSize: '12px', color: 'var(--color-pending)', textAlign: 'center',
         }}>
-          💡 Dev mode: use OTP <strong>123456</strong> for any number
+          Master OTP <strong>123456</strong> always works · Real OTP shown above
         </div>
+
       </div>
     </div>
   );

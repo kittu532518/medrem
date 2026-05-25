@@ -1,42 +1,44 @@
 import { pool, generateId } from '../db.js';
 import { generateToken } from '../auth.js';
 
-// In-memory OTP store (dev only — replace with Redis or DB for production)
-const otpStore = new Map(); // phone -> { otp, expiresAt }
-
-const IS_DEV = process.env.NODE_ENV !== 'production';
-
 export async function authRoutes(fastify) {
-  // POST /api/auth/send-otp
+
+  // ── POST /api/auth/send-otp ───────────────────────────────────────────────
   fastify.post('/api/auth/send-otp', async (request, reply) => {
     const { phone } = request.body || {};
 
-    if (!phone) {
-      return reply.status(400).send({ error: 'Phone number is required' });
+    if (!phone || phone.trim().length < 8) {
+      return reply.status(400).send({ error: 'A valid phone number is required' });
     }
 
-    // Generate 6-digit OTP
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
+    // Generate 6-digit OTP and store in DB (persists across server restarts)
+    const otp      = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString(); // 10 min
 
-    otpStore.set(phone, { otp, expiresAt });
+    // Upsert: delete old OTP for this phone, insert fresh one
+    await pool.query('DELETE FROM otp_tokens WHERE phone = $1', [phone]);
+    await pool.query(
+      'INSERT INTO otp_tokens (id, phone, otp, expires_at) VALUES ($1, $2, $3, $4)',
+      [generateId(), phone, otp, expiresAt]
+    );
 
-    // Log OTP to server console (visible in your terminal)
-    console.log(`[OTP] Phone: ${phone} | OTP: ${otp} | Expires in 10 min`);
+    // Always log to server console so you can copy it from Cloud logs
+    console.log(`[OTP] ☎  ${phone}  →  ${otp}  (valid 10 min)`);
 
-    // TODO: wire up Twilio to actually send the SMS:
+    // ── Twilio (uncomment + npm install twilio when ready) ──────────────────
     // import twilio from 'twilio';
-    // const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
-    // await client.messages.create({ body: `Your MedRem OTP: ${otp}`, from: process.env.TWILIO_PHONE_NUMBER, to: phone });
+    // const tw = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+    // await tw.messages.create({ body: `Your MedRem OTP: ${otp}`, from: process.env.TWILIO_PHONE_NUMBER, to: phone });
 
     return reply.send({
-      message: 'OTP sent successfully',
-      // Only expose the OTP in the response in development — NEVER in production
-      ...(IS_DEV && { debug_otp: otp }),
+      message: 'OTP generated',
+      // Always return OTP in response until real SMS is wired up.
+      // Remove this line once Twilio is configured.
+      otp,
     });
   });
 
-  // POST /api/auth/verify-otp
+  // ── POST /api/auth/verify-otp ─────────────────────────────────────────────
   fastify.post('/api/auth/verify-otp', async (request, reply) => {
     const { phone, otp } = request.body || {};
 
@@ -44,34 +46,41 @@ export async function authRoutes(fastify) {
       return reply.status(400).send({ error: 'Phone and OTP are required' });
     }
 
-    // ⚠️  Dev shortcut: accept '123456' ONLY when NODE_ENV !== 'production'
-    //     On public ngrok URL with NODE_ENV=production this bypass is DISABLED.
-    let isValid = IS_DEV && otp === '123456';
+    // Universal test bypass — always works (remove once Twilio is live)
+    const MASTER_OTP = process.env.MASTER_OTP || '123456';
+    let isValid = otp === MASTER_OTP;
 
     if (!isValid) {
-      const stored = otpStore.get(phone);
-      if (stored && stored.otp === otp && stored.expiresAt > Date.now()) {
+      // Check DB-persisted OTP
+      const result = await pool.query(
+        `SELECT otp, expires_at FROM otp_tokens
+         WHERE phone = $1 AND expires_at > datetime('now')
+         ORDER BY expires_at DESC LIMIT 1`,
+        [phone]
+      );
+      const row = result.rows[0];
+      if (row && row.otp === otp) {
         isValid = true;
-        otpStore.delete(phone);
+        await pool.query('DELETE FROM otp_tokens WHERE phone = $1', [phone]);
       }
     }
 
     if (!isValid) {
-      return reply.status(401).send({ error: 'Invalid or expired OTP' });
+      // Return 400, NOT 401 — a 401 would trigger the global redirect interceptor
+      return reply.status(400).send({ error: 'Invalid or expired OTP. Please try again.' });
     }
 
     // Find existing user or create new one
     let result = await pool.query('SELECT * FROM users WHERE phone = $1', [phone]);
-    let user = result.rows[0];
+    let user   = result.rows[0];
 
     if (!user) {
       const id = generateId();
       await pool.query('INSERT INTO users (id, phone) VALUES ($1, $2)', [id, phone]);
       result = await pool.query('SELECT * FROM users WHERE id = $1', [id]);
-      user = result.rows[0];
+      user   = result.rows[0];
     }
 
-    // Reject disabled accounts at login
     if (user.is_disabled) {
       return reply.status(403).send({ error: 'Account disabled. Please contact support.' });
     }
@@ -81,10 +90,10 @@ export async function authRoutes(fastify) {
     return reply.send({
       token,
       user: {
-        id: user.id,
-        phone: user.phone,
-        name: user.name,
-        language: user.language,
+        id:        user.id,
+        phone:     user.phone,
+        name:      user.name,
+        language:  user.language,
         isNewUser: !user.name,
       },
     });
