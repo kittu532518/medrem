@@ -1,0 +1,12 @@
+# ⚠️  This file is no longer used.
+#
+# The host-check issue it was trying to solve is now fixed properly in
+# packages/web/vite.config.js via:
+#
+#   server:
+#     allowedHosts: 'all'
+#     hmr:
+#       protocol: 'wss'
+#       clientPort: 443
+#
+# Use ngrok.yml in this directory instead.

@@ -1,0 +1,40 @@
+# Dependencies
+node_modules/
+.npm
+
+# Environment — NEVER commit real secrets
+.env
+packages/api/.env
+packages/web/.env
+
+# Database
+*.db
+*.db-shm
+*.db-wal
+
+# Uploads (user photos — large binary files)
+packages/api/src/uploads/
+
+# Build output
+packages/web/dist/
+packages/web/.vite/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+
+# Temp Word lock files
+~$*.docx
+
+# Docker
+.dockerignore

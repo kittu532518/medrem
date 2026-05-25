@@ -1,0 +1,24 @@
+{
+  "name": "@medrem/api",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
+    "@fastify/cors": "^9.0.0",
+    "@fastify/multipart": "^8.0.0",
+    "@fastify/static": "^7.0.0",
+    "@libsql/client": "^0.14.0",
+    "dotenv": "^16.4.0",
+    "exifr": "^7.1.3",
+    "fastify": "^4.26.2",
+    "jsonwebtoken": "^9.0.2",
+    "node-cron": "^3.0.3",
+    "web-push": "^3.6.7"
+  }
+}

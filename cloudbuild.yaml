@@ -1,0 +1,87 @@
+steps:
+  # Step 1: Build API Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/medrem-api:${SHORT_SHA}'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/medrem-api:latest'
+      - '-f'
+      - 'packages/api/Dockerfile'
+      - 'packages/api'
+
+  # Step 2: Build web Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/medrem-web:${SHORT_SHA}'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/medrem-web:latest'
+      - '-f'
+      - 'packages/web/Dockerfile'
+      - 'packages/web'
+
+  # Step 3: Push API image to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/medrem-api:${SHORT_SHA}'
+
+  # Step 4: Push web image to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/medrem-web:${SHORT_SHA}'
+
+  # Step 5: Deploy API to Cloud Run
+  - name: 'gcr.io/cloud-builders/gke-deploy'
+    args:
+      - 'run'
+      - '--filename=.'
+      - '--image=${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/medrem-api:${SHORT_SHA}'
+      - '--image=${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/medrem-web:${SHORT_SHA}'
+    env:
+      - 'CLOUDSDK_COMPUTE_REGION=${_REGION}'
+
+  # Alternative: Deploy API directly to Cloud Run (simpler approach)
+  - name: 'gcr.io/cloud-builders/run'
+    args:
+      - 'deploy'
+      - 'medrem-api'
+      - '--image=${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/medrem-api:${SHORT_SHA}'
+      - '--region=${_REGION}'
+      - '--platform=managed'
+      - '--allow-unauthenticated'
+      - '--set-env-vars=ANTHROPIC_API_KEY=${_ANTHROPIC_API_KEY},JWT_SECRET=${_JWT_SECRET},NODE_ENV=production'
+      - '--memory=512Mi'
+      - '--cpu=1'
+
+  # Deploy web frontend to Cloud Run
+  - name: 'gcr.io/cloud-builders/run'
+    args:
+      - 'deploy'
+      - 'medrem-web'
+      - '--image=${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/medrem-web:${SHORT_SHA}'
+      - '--region=${_REGION}'
+      - '--platform=managed'
+      - '--allow-unauthenticated'
+      - '--memory=256Mi'
+      - '--cpu=1'
+
+images:
+  - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/medrem-api:${SHORT_SHA}'
+  - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/medrem-web:${SHORT_SHA}'
+  - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/medrem-api:latest'
+  - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/medrem-web:latest'
+
+substitutions:
+  _REGION: 'us-central1'
+  _REPOSITORY: 'medrem'
+  _ANTHROPIC_API_KEY: '' # Set via Cloud Build trigger or gcloud
+  _JWT_SECRET: '' # Set via Cloud Build trigger or gcloud
+
+options:
+  machineType: 'N1_HIGHCPU_8'
+  logging: CLOUD_LOGGING_ONLY

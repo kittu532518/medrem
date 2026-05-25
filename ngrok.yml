@@ -1,0 +1,28 @@
+# MedRem — ngrok configuration
+# Place this file in your project root and run: ngrok start --config ngrok.yml --all
+#
+# Free ngrok account: https://dashboard.ngrok.com
+# Add your authtoken below (find it at https://dashboard.ngrok.com/get-started/your-authtoken)
+
+version: "3"
+
+# Replace with your actual authtoken:
+# authtoken: 2abc123_your_token_here
+
+tunnels:
+  # Web frontend — this is the URL you share with patients
+  web:
+    addr: 5173
+    proto: http
+    schemes:
+      - https        # patients always get HTTPS (required for camera + PWA install)
+    # Use a stable ngrok free subdomain (requires ngrok account support for ngrok-free.app)
+    domain: medrem-dev.ngrok-free.app
+
+  # API backend — internal tunnel (web proxies /api → localhost:3001, so this
+  # tunnel is OPTIONAL. Only enable it if you want direct API access for debugging.)
+  # api:
+  #   addr: 3001
+  #   proto: http
+  #   schemes:
+  #     - https

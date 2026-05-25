@@ -1,0 +1,42 @@
+version: '3.9'
+
+services:
+  api:
+    build:
+      context: ./packages/api
+      dockerfile: Dockerfile
+    container_name: medrem-api
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      JWT_SECRET: ${JWT_SECRET}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-medrem_admin_2024}
+      DB_PATH: /data/medrem.db
+    volumes:
+      - medrem_data:/data
+      - medrem_uploads:/app/src/uploads
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  web:
+    build:
+      context: ./packages/web
+      dockerfile: Dockerfile
+    container_name: medrem-web
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - api
+
+volumes:
+  medrem_data:
+  medrem_uploads:

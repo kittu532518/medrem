@@ -1,0 +1,161 @@
+{
+  "app": {
+    "name": "MedRem",
+    "tagline": "Smart Medicine Reminder"
+  },
+  "nav": {
+    "home": "Home",
+    "history": "History",
+    "rx": "Rx",
+    "profile": "Profile"
+  },
+  "onboarding": {
+    "step1": {
+      "title": "Choose Your Language",
+      "subtitle": "Select the language you prefer"
+    },
+    "step2": {
+      "title": "Enter Your Phone",
+      "subtitle": "We'll send you a verification code",
+      "phone_placeholder": "+91 9876543210",
+      "send_otp": "Send OTP",
+      "otp_sent": "OTP sent! Enter the 6-digit code below.",
+      "otp_placeholder": "Enter 6-digit OTP",
+      "verify": "Verify & Continue",
+      "resend": "Resend OTP",
+      "dev_hint": "Dev mode: use OTP 123456"
+    },
+    "step3": {
+      "title": "Your Profile",
+      "subtitle": "Help us personalise your experience",
+      "name_placeholder": "Your full name",
+      "dob_label": "Date of Birth",
+      "continue": "Continue"
+    },
+    "step4": {
+      "title": "Add Prescription",
+      "subtitle": "Upload a photo of your prescription",
+      "add_photo": "Take Photo / Upload",
+      "type_chronic": "Ongoing (Chronic)",
+      "type_temporary": "For a few days (Temporary)",
+      "days_label": "Number of days",
+      "uploading": "Uploading & reading prescription...",
+      "add_another": "Add Another",
+      "continue": "Continue"
+    },
+    "step5": {
+      "title": "Review Medicines",
+      "subtitle": "Confirm the medicines extracted from your prescription",
+      "needs_review": "Needs Review",
+      "sessions_label": "Times",
+      "save_changes": "Save Changes",
+      "confirm_all": "Confirm & Continue"
+    },
+    "step6": {
+      "title": "Caregiver Setup",
+      "subtitle": "Add a caregiver to receive alerts (optional)",
+      "name_placeholder": "Caregiver's name",
+      "phone_placeholder": "+91 9876543210",
+      "skip": "Skip for Now",
+      "finish": "Finish Setup"
+    }
+  },
+  "home": {
+    "greeting_morning": "Good morning",
+    "greeting_afternoon": "Good afternoon",
+    "greeting_evening": "Good evening",
+    "greeting_night": "Good night",
+    "today_adherence": "Today's Adherence",
+    "verified": "Verified",
+    "partial": "Partial",
+    "missed": "Missed",
+    "no_medicines": "No medicines scheduled. Add a prescription to get started.",
+    "add_prescription": "Add Prescription"
+  },
+  "sessions": {
+    "morning": "Morning",
+    "afternoon": "Afternoon",
+    "evening": "Evening",
+    "night": "Night"
+  },
+  "dose": {
+    "status_success": "Verified",
+    "status_partial": "Partial",
+    "status_failure": "Missed",
+    "status_pending": "Pending",
+    "take_now": "Take Now",
+    "submitted_at": "Submitted at"
+  },
+  "capture": {
+    "title": "Verify Dose",
+    "guide_face": "Face",
+    "guide_medicine": "Medicine",
+    "guide_hint": "Show your face and medicine in the frame",
+    "capture_btn": "Take Photo",
+    "retake": "Retake",
+    "uploading": "Verifying with AI...",
+    "success": "Dose Verified!",
+    "failed": "Verification Failed",
+    "attempts_left": "attempts remaining",
+    "partial_override": "Mark as Taken (No Photo)",
+    "partial_confirm_title": "Confirm Manual Entry",
+    "partial_confirm_body": "This will mark the dose as partially verified without photo proof. Your caregiver will be notified.",
+    "confirm": "Confirm",
+    "cancel": "Cancel"
+  },
+  "history": {
+    "title": "Dose History",
+    "last_30": "Last 30 Days",
+    "no_data": "No history yet",
+    "adherence": "Adherence"
+  },
+  "rx": {
+    "title": "Prescriptions",
+    "add": "Add Prescription",
+    "chronic": "Ongoing",
+    "temporary": "Temporary",
+    "days_left": "days left",
+    "expired": "Expired",
+    "medicines": "medicines",
+    "active": "Active",
+    "inactive": "Inactive"
+  },
+  "profile": {
+    "title": "Profile",
+    "name": "Name",
+    "phone": "Phone",
+    "dob": "Date of Birth",
+    "language": "Language",
+    "caregiver": "Caregiver",
+    "caregiver_name": "Caregiver Name",
+    "caregiver_phone": "Caregiver Phone",
+    "save": "Save Changes",
+    "push_notifications": "Push Notifications",
+    "enable_push": "Enable Notifications",
+    "push_enabled": "Notifications Enabled",
+    "test_push": "Send Test Notification",
+    "saved": "Profile saved!"
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "Something went wrong",
+    "retry": "Try Again",
+    "back": "Back",
+    "next": "Next",
+    "save": "Save",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "delete": "Delete",
+    "edit": "Edit",
+    "close": "Close"
+  },
+  "languages": {
+    "en": "English",
+    "hi": "हिन्दी",
+    "te": "తెలుగు",
+    "ta": "தமிழ்",
+    "kn": "ಕನ್ನಡ",
+    "ml": "മലയാളം",
+    "mr": "मराठी"
+  }
+}
