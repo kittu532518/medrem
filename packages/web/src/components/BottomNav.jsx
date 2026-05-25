@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 
 const navItems = [
   {
-    path: '/onboarding',
+    path: '/',
     labelKey: 'nav.home',
     icon: (active) => (
       <svg width="24" height="24" fill={active ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -65,7 +65,7 @@ export default function BottomNav() {
         <NavLink
           key={path}
           to={path}
-          end={path === '/onboarding'}
+          end={path === '/'}
           style={({ isActive }) => ({
             flex: 1,
             display: 'flex',
