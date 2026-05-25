@@ -33,13 +33,13 @@ export default function App() {
         <Route path="/admin" element={<Admin />} />
 
         {/* Protected patient screens */}
-        <Route path="/" element={<RequireAuth><ProtectedLayout><Home /></ProtectedLayout></RequireAuth>} />
+        <Route path="/" element={<Navigate to="/onboarding" replace />} />
         <Route path="/capture/:doseId" element={<RequireAuth><Capture /></RequireAuth>} />
         <Route path="/history" element={<RequireAuth><ProtectedLayout><History /></ProtectedLayout></RequireAuth>} />
         <Route path="/rx" element={<RequireAuth><ProtectedLayout><Rx /></ProtectedLayout></RequireAuth>} />
         <Route path="/profile" element={<RequireAuth><ProtectedLayout><Profile /></ProtectedLayout></RequireAuth>} />
 
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<Navigate to="/onboarding" replace />} />
       </Routes>
     </BrowserRouter>
   );
