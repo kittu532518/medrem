@@ -53,7 +53,14 @@ export default function Onboarding() {
     if (step < STEPS.length - 1) {
       setStep(s => s + 1);
     } else {
-      navigate('/', { replace: true });
+      // Save phone number for login screen, then redirect to login
+      if (data.phone) {
+        localStorage.setItem('medrem_phone_registered', data.phone);
+      }
+      // Clear any auth tokens so user must login
+      localStorage.removeItem('medrem_token');
+      localStorage.removeItem('medrem_user');
+      navigate('/login', { replace: true });
     }
   };
 

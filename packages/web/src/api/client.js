@@ -16,14 +16,14 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     const url = error.config?.url || '';
-    // Only redirect to onboarding on 401 from PROTECTED routes.
+    // Only redirect to login on 401 from PROTECTED routes.
     // Auth routes (/auth/send-otp, /auth/verify-otp) return 401 for wrong OTP
     // — that must NOT trigger a redirect, just show an error message.
     const isAuthRoute = url.includes('/auth/');
     if (error.response?.status === 401 && !isAuthRoute) {
       localStorage.removeItem('medrem_token');
       localStorage.removeItem('medrem_user');
-      window.location.href = '/onboarding';
+      window.location.href = '/login';
     }
     return Promise.reject(error);
   }
