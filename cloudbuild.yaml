@@ -44,10 +44,10 @@ steps:
         set -e
         ENV_VARS="NODE_ENV=production"
         if [ -n "${_ANTHROPIC_API_KEY}" ]; then
-          ENV_VARS="ANTHROPIC_API_KEY=${_ANTHROPIC_API_KEY},${ENV_VARS}"
+          ENV_VARS="ANTHROPIC_API_KEY=${_ANTHROPIC_API_KEY},$${ENV_VARS}"
         fi
         if [ -n "${_JWT_SECRET}" ]; then
-          ENV_VARS="${ENV_VARS},JWT_SECRET=${_JWT_SECRET}"
+          ENV_VARS="$${ENV_VARS},JWT_SECRET=${_JWT_SECRET}"
         fi
         gcloud run deploy medrem-api \
           --image=${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/medrem-api:${SHORT_SHA} \
