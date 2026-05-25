@@ -35,17 +35,7 @@ steps:
       - 'push'
       - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/medrem-web:${SHORT_SHA}'
 
-  # Step 5: Deploy API to Cloud Run
-  - name: 'gcr.io/cloud-builders/gke-deploy'
-    args:
-      - 'run'
-      - '--filename=.'
-      - '--image=${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/medrem-api:${SHORT_SHA}'
-      - '--image=${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/medrem-web:${SHORT_SHA}'
-    env:
-      - 'CLOUDSDK_COMPUTE_REGION=${_REGION}'
-
-  # Alternative: Deploy API directly to Cloud Run (simpler approach)
+  # Deploy API directly to Cloud Run
   - name: 'gcr.io/cloud-builders/run'
     args:
       - 'deploy'
