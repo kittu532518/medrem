@@ -36,8 +36,9 @@ steps:
       - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/medrem-web:${SHORT_SHA}'
 
   # Deploy API directly to Cloud Run
-  - name: 'gcr.io/cloud-builders/run'
+  - name: 'gcr.io/cloud-builders/gcloud'
     args:
+      - 'run'
       - 'deploy'
       - 'medrem-api'
       - '--image=${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/medrem-api:${SHORT_SHA}'
@@ -49,8 +50,9 @@ steps:
       - '--cpu=1'
 
   # Deploy web frontend to Cloud Run
-  - name: 'gcr.io/cloud-builders/run'
+  - name: 'gcr.io/cloud-builders/gcloud'
     args:
+      - 'run'
       - 'deploy'
       - 'medrem-web'
       - '--image=${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/medrem-web:${SHORT_SHA}'
