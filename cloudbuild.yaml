@@ -37,26 +37,17 @@ steps:
 
   # Deploy API directly to Cloud Run
   - name: 'gcr.io/cloud-builders/gcloud'
-    entrypoint: 'bash'
     args:
-      - '-c'
-      - |
-        set -e
-        ENV_VARS="NODE_ENV=production"
-        if [ -n "${_ANTHROPIC_API_KEY}" ]; then
-          ENV_VARS="ANTHROPIC_API_KEY=${_ANTHROPIC_API_KEY},$${ENV_VARS}"
-        fi
-        if [ -n "${_JWT_SECRET}" ]; then
-          ENV_VARS="$${ENV_VARS},JWT_SECRET=${_JWT_SECRET}"
-        fi
-        gcloud run deploy medrem-api \
-          --image=${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/medrem-api:${SHORT_SHA} \
-          --region=${_REGION} \
-          --platform=managed \
-          --allow-unauthenticated \
-          --set-env-vars="$${ENV_VARS}" \
-          --memory=512Mi \
-          --cpu=1
+      - 'run'
+      - 'deploy'
+      - 'medrem-api'
+      - '--image=${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/medrem-api:${SHORT_SHA}'
+      - '--region=${_REGION}'
+      - '--platform=managed'
+      - '--allow-unauthenticated'
+      - '--set-env-vars=ANTHROPIC_API_KEY=${_ANTHROPIC_API_KEY},JWT_SECRET=${_JWT_SECRET},NODE_ENV=production'
+      - '--memory=512Mi'
+      - '--cpu=1'
 
   # Deploy web frontend to Cloud Run
   - name: 'gcr.io/cloud-builders/gcloud'
