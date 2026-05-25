@@ -54,7 +54,7 @@ steps:
           --region=${_REGION} \
           --platform=managed \
           --allow-unauthenticated \
-          --set-env-vars="${ENV_VARS}" \
+          --set-env-vars="$${ENV_VARS}" \
           --memory=512Mi \
           --cpu=1
 
