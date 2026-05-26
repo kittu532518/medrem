@@ -133,26 +133,34 @@ export default function Home() {
             {t('common.retry')}
           </button>
         </div>
-      ) : !hasDoses ? (
-        <div className="card" style={{ textAlign: 'center', padding: '40px' }}>
-          <div style={{ fontSize: '48px', marginBottom: '12px' }}>💊</div>
-          <div style={{ fontWeight: '700', fontSize: '17px', marginBottom: '8px' }}>No medicines today</div>
-          <div style={{ color: 'var(--color-text-muted)', fontSize: '14px', marginBottom: '20px' }}>
-            {t('home.no_medicines')}
-          </div>
-          <button className="btn-primary" onClick={() => navigate('/rx')} style={{ maxWidth: '220px', margin: '0 auto' }}>
-            + {t('home.add_prescription')}
-          </button>
-        </div>
       ) : (
-        Object.entries(schedule.sessions).map(([sessionName, doses]) => (
-          <SessionGroup
-            key={sessionName}
-            sessionName={sessionName}
-            doses={doses}
-            onRefresh={loadSchedule}
-          />
-        ))
+        <>
+          {/* Show medicines if they exist */}
+          {hasDoses && (
+            Object.entries(schedule.sessions).map(([sessionName, doses]) => (
+              <SessionGroup
+                key={sessionName}
+                sessionName={sessionName}
+                doses={doses}
+                onRefresh={loadSchedule}
+              />
+            ))
+          )}
+
+          {/* Show "No medicines" card with add prescription option */}
+          {!hasDoses && (
+            <div className="card" style={{ textAlign: 'center', padding: '40px' }}>
+              <div style={{ fontSize: '48px', marginBottom: '12px' }}>💊</div>
+              <div style={{ fontWeight: '700', fontSize: '17px', marginBottom: '8px' }}>No medicines today</div>
+              <div style={{ color: 'var(--color-text-muted)', fontSize: '14px', marginBottom: '20px' }}>
+                {t('home.no_medicines')}
+              </div>
+              <button className="btn-primary" onClick={() => navigate('/rx')} style={{ maxWidth: '220px', margin: '0 auto' }}>
+                + {t('home.add_prescription')}
+              </button>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

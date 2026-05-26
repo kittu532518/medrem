@@ -35,7 +35,8 @@ export default function StepPrescriptions({ onNext, data, setData }) {
   const [durationDays, setDurationDays] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const fileRef = useRef(null);
+  const cameraRef = useRef(null);
+  const galleryRef = useRef(null);
   const prescriptions = data.prescriptions || [];
 
   const handleFileChange = async (e) => {
@@ -68,7 +69,8 @@ export default function StepPrescriptions({ onNext, data, setData }) {
       setError(err.response?.data?.error || 'Failed to upload prescription. Please try again.');
     } finally {
       setLoading(false);
-      if (fileRef.current) fileRef.current.value = '';
+      if (cameraRef.current) cameraRef.current.value = '';
+      if (galleryRef.current) galleryRef.current.value = '';
     }
   };
 
@@ -131,12 +133,19 @@ export default function StepPrescriptions({ onNext, data, setData }) {
         <PrescriptionItem key={idx} rx={rx} onRemove={() => handleRemove(idx)} />
       ))}
 
-      {/* Upload button */}
+      {/* File input refs - hidden */}
       <input
-        ref={fileRef}
+        ref={cameraRef}
         type="file"
         accept="image/*"
         capture="environment"
+        onChange={handleFileChange}
+        style={{ display: 'none' }}
+      />
+      <input
+        ref={galleryRef}
+        type="file"
+        accept="image/*"
         onChange={handleFileChange}
         style={{ display: 'none' }}
       />
@@ -152,13 +161,22 @@ export default function StepPrescriptions({ onNext, data, setData }) {
           </div>
         </div>
       ) : (
-        <button
-          className={prescriptions.length > 0 ? 'btn-secondary' : 'btn-primary'}
-          onClick={() => fileRef.current?.click()}
-          style={{ marginBottom: '12px' }}
-        >
-          📷 {prescriptions.length > 0 ? t('onboarding.step4.add_another') : t('onboarding.step4.add_photo')}
-        </button>
+        <div style={{ display: 'flex', gap: '10px', marginBottom: '12px' }}>
+          <button
+            className={prescriptions.length > 0 ? 'btn-secondary' : 'btn-primary'}
+            onClick={() => cameraRef.current?.click()}
+            style={{ flex: 1 }}
+          >
+            📷 {prescriptions.length > 0 ? 'Add another' : t('onboarding.step4.add_photo')}
+          </button>
+          <button
+            className={prescriptions.length > 0 ? 'btn-secondary' : 'btn-primary'}
+            onClick={() => galleryRef.current?.click()}
+            style={{ flex: 1, background: prescriptions.length > 0 ? '#C0C0C0' : 'var(--color-success)' }}
+          >
+            🖼️ Gallery
+          </button>
+        </div>
       )}
 
       {error && (

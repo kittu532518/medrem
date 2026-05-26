@@ -268,7 +268,8 @@ function PrescriptionCard({ rx, onDeleted, onUpdated }) {
 // ── Main Rx screen ─────────────────────────────────────────────────────────
 export default function Rx() {
   const { t } = useTranslation();
-  const fileRef = useRef(null);
+  const cameraRef = useRef(null);
+  const galleryRef = useRef(null);
   const [prescriptions, setPrescriptions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -309,7 +310,8 @@ export default function Rx() {
       alert(err.response?.data?.error || 'Upload failed. Please try again.');
     } finally {
       setUploading(false);
-      if (fileRef.current) fileRef.current.value = '';
+      if (cameraRef.current) cameraRef.current.value = '';
+      if (galleryRef.current) galleryRef.current.value = '';
     }
   };
 
@@ -347,10 +349,30 @@ export default function Rx() {
           {uploadType === 'temporary' && (
             <input type="number" value={uploadDays} onChange={e => setUploadDays(e.target.value)} placeholder="Number of days" style={{ marginBottom: '12px' }} min="1" max="365" />
           )}
-          <input ref={fileRef} type="file" accept="image/*" capture="environment" onChange={handleFileUpload} style={{ display: 'none' }} />
-          <button className="btn-primary" onClick={() => fileRef.current?.click()} disabled={uploading}>
-            {uploading ? '⏳ Reading prescription...' : '📷 Take Photo / Upload'}
-          </button>
+
+          {/* File input refs - hidden */}
+          <input ref={cameraRef} type="file" accept="image/*" capture="environment" onChange={handleFileUpload} style={{ display: 'none' }} />
+          <input ref={galleryRef} type="file" accept="image/*" onChange={handleFileUpload} style={{ display: 'none' }} />
+
+          {/* Upload buttons */}
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button
+              className="btn-primary"
+              onClick={() => cameraRef.current?.click()}
+              disabled={uploading}
+              style={{ flex: 1 }}
+            >
+              {uploading ? '⏳ Reading...' : '📷 Take Photo'}
+            </button>
+            <button
+              className="btn-primary"
+              onClick={() => galleryRef.current?.click()}
+              disabled={uploading}
+              style={{ flex: 1, background: 'var(--color-success)' }}
+            >
+              {uploading ? '⏳ Reading...' : '🖼️ Choose from Gallery'}
+            </button>
+          </div>
         </div>
       )}
 

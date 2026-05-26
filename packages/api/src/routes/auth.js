@@ -11,29 +11,24 @@ export async function authRoutes(fastify) {
       return reply.status(400).send({ error: 'A valid phone number is required' });
     }
 
-    // ✅ NEW: Validate phone number exists in database
+    // ✅ CHANGED: Allow both new registrations (onboarding) and existing logins
+    //   Check if user exists and is disabled
     const userResult = await pool.query(
       'SELECT id, is_disabled FROM users WHERE phone = $1',
       [phone]
     );
 
-    if (!userResult.rows[0]) {
-      // Phone not registered in system
-      return reply.status(404).send({
-        error: 'Phone number not registered',
-        message: 'Please complete registration first',
-        code: 'PHONE_NOT_REGISTERED',
-      });
-    }
-
-    // Check if account is disabled
-    if (userResult.rows[0].is_disabled) {
+    // If user exists and is disabled, block them
+    if (userResult.rows[0] && userResult.rows[0].is_disabled) {
       return reply.status(403).send({
         error: 'Account disabled',
         message: 'Please contact support',
         code: 'ACCOUNT_DISABLED',
       });
     }
+
+    // If user doesn't exist, that's OK - they're registering (onboarding)
+    // If user exists and not disabled, that's OK - they're logging in
 
     // Generate 6-digit OTP and store in DB (persists across server restarts)
     const otp      = Math.floor(100000 + Math.random() * 900000).toString();
@@ -94,17 +89,19 @@ export async function authRoutes(fastify) {
       return reply.status(400).send({ error: 'Invalid or expired OTP. Please try again.' });
     }
 
-    // ✅ NEW: Find user - must exist (no auto-creation)
+    // Find or create user
+    // ✅ IMPORTANT: During onboarding (registration), user doesn't exist yet
+    //   So we CREATE the account here for new registrations
+    // ✅ For login, validation in send-otp already checked phone exists
     let result = await pool.query('SELECT * FROM users WHERE phone = $1', [phone]);
     let user   = result.rows[0];
 
     if (!user) {
-      // User doesn't exist - shouldn't happen if send-otp validation worked
-      return reply.status(404).send({
-        error: 'User not found',
-        message: 'Please register first',
-        code: 'USER_NOT_FOUND',
-      });
+      // New user registration (onboarding flow)
+      const id = generateId();
+      await pool.query('INSERT INTO users (id, phone) VALUES ($1, $2)', [id, phone]);
+      result = await pool.query('SELECT * FROM users WHERE id = $1', [id]);
+      user   = result.rows[0];
     }
 
     if (user.is_disabled) {
@@ -115,23 +112,13 @@ export async function authRoutes(fastify) {
       });
     }
 
-    // ✅ NEW: Validate user has medicines (properly registered)
+    // Check if user has medicines (determines if they've completed onboarding)
     const medicinesResult = await pool.query(
       'SELECT COUNT(*) as count FROM medicines WHERE user_id = $1 AND is_active = 1',
       [user.id]
     );
 
     const hasMedicines = medicinesResult.rows[0]?.count > 0;
-
-    if (!hasMedicines) {
-      // User registered but hasn't added any medicines yet
-      return reply.status(403).send({
-        error: 'Incomplete profile',
-        message: 'Please complete your registration to add medicines',
-        code: 'NO_MEDICINES',
-        userId: user.id, // Return so they can navigate to onboarding
-      });
-    }
 
     const token = generateToken(user.id);
 
@@ -142,7 +129,7 @@ export async function authRoutes(fastify) {
         phone:     user.phone,
         name:      user.name,
         language:  user.language,
-        hasMedicines: true,
+        isNewUser: !hasMedicines, // ✅ Changed: isNewUser means no medicines (not done with onboarding)
       },
     });
   });
