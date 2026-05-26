@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { submitDosePhoto, partialOverride, getTodaySchedule } from '../../api/client.js';
 import ValidationResult from '../../components/ValidationResult.jsx';
+import PhotoHistory from '../../components/PhotoHistory.jsx';
 
 const MAX_ATTEMPTS = 3;
 
@@ -136,7 +137,10 @@ export default function Capture() {
         </div>
       </div>
 
-      <div style={{ padding: '20px 16px', flex: 1 }}>
+      <div style={{ padding: '20px 16px', flex: 1, overflowY: 'auto' }}>
+        {/* Photo History */}
+        <PhotoHistory />
+
         {/* Camera guide */}
         {!result && !loading && (
           <div style={{ marginBottom: '20px' }}>

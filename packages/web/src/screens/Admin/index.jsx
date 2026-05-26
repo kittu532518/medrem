@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import AdminPhotoGallery from '../../components/AdminPhotoGallery.jsx';
 
 const ADMIN_TOKEN_KEY = 'medrem_admin_token';
 const API = '/api/admin';
@@ -217,6 +218,7 @@ function Dashboard({ adminName, onLogout }) {
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
+  const [photoGalleryUser, setPhotoGalleryUser] = useState(null);
   const LIMIT = 15;
 
   const loadStats = useCallback(() => {
@@ -319,15 +321,22 @@ function Dashboard({ adminName, onLogout }) {
                         </td>
                         <td style={{ ...styles.td, color: C.muted, fontSize: '12px' }}>{u.created_at?.slice(0, 10)}</td>
                         <td style={styles.td}>
-                          <div style={{ display: 'flex', gap: '6px' }}>
+                          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                             <button
-                              style={styles.btn(u.is_disabled ? C.success : C.warn)}
+                              style={{ ...styles.btn(C.blue), fontSize: '12px', padding: '5px 10px' }}
+                              onClick={() => setPhotoGalleryUser(u)}
+                              title="View photos"
+                            >
+                              📸
+                            </button>
+                            <button
+                              style={{ ...styles.btn(u.is_disabled ? C.success : C.warn), fontSize: '12px', padding: '5px 10px' }}
                               onClick={() => toggleDisable(u)}
                             >
                               {u.is_disabled ? 'Enable' : 'Disable'}
                             </button>
                             <button
-                              style={styles.btn(C.danger)}
+                              style={{ ...styles.btn(C.danger), fontSize: '12px', padding: '5px 10px' }}
                               onClick={() => deleteUser(u)}
                             >
                               Delete
@@ -353,6 +362,13 @@ function Dashboard({ adminName, onLogout }) {
       </div>
 
       {selectedUser && <UserModal userId={selectedUser} onClose={() => setSelectedUser(null)} />}
+      {photoGalleryUser && (
+        <AdminPhotoGallery
+          userId={photoGalleryUser.id}
+          userName={photoGalleryUser.name || photoGalleryUser.phone}
+          onClose={() => setPhotoGalleryUser(null)}
+        />
+      )}
     </div>
   );
 }

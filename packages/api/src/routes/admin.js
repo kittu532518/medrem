@@ -55,26 +55,37 @@ export async function adminRoutes(fastify) {
   fastify.get('/api/admin/users', { preHandler: requireAdmin }, async (request, reply) => {
     const { search = '', page = 1, limit = 20 } = request.query;
     const offset = (page - 1) * limit;
+    const searchPattern = `%${search}%`;
 
-    const users = await pool.query(
-      `SELECT u.id, u.phone, u.name, u.language, u.is_disabled, u.consecutive_misses, u.created_at,
+    let query = `SELECT u.id, u.phone, u.name, u.language, u.is_disabled, u.consecutive_misses, u.created_at,
               COUNT(DISTINCT m.id) AS medicine_count,
               SUM(CASE WHEN dl.status IN ('success','partial_success') THEN 1 ELSE 0 END) AS doses_taken,
               SUM(CASE WHEN dl.status = 'pending' AND dl.scheduled_date < date('now') THEN 1 ELSE 0 END) AS doses_missed
        FROM users u
        LEFT JOIN medicines m ON m.user_id = u.id AND m.is_active = 1
-       LEFT JOIN dose_logs dl ON dl.user_id = u.id
-       WHERE (u.name LIKE $1 OR u.phone LIKE $1)
-       GROUP BY u.id
-       ORDER BY u.created_at DESC
-       LIMIT $2 OFFSET $3`,
-      [`%${search}%`, limit, offset]
-    );
+       LEFT JOIN dose_logs dl ON dl.user_id = u.id`;
 
-    const total = await pool.query(
-      'SELECT COUNT(*) as count FROM users WHERE name LIKE $1 OR phone LIKE $1',
-      [`%${search}%`]
-    );
+    let params = [limit, offset];
+
+    if (search.trim()) {
+      query += ` WHERE (u.name LIKE $1 OR u.phone LIKE $1)`;
+      params = [searchPattern, limit, offset];
+    }
+
+    query += ` GROUP BY u.id ORDER BY u.created_at DESC LIMIT $${params.length - 1} OFFSET $${params.length}`;
+
+    const users = await pool.query(query, params);
+
+    // Count total matching users
+    let countQuery = 'SELECT COUNT(*) as count FROM users';
+    let countParams = [];
+
+    if (search.trim()) {
+      countQuery += ' WHERE name LIKE $1 OR phone LIKE $1';
+      countParams = [searchPattern];
+    }
+
+    const total = await pool.query(countQuery, countParams);
 
     return reply.send({
       users: users.rows,
@@ -159,5 +170,57 @@ export async function adminRoutes(fastify) {
   // ── GET /api/admin/me ─────────────────────────────────────────
   fastify.get('/api/admin/me', { preHandler: requireAdmin }, async (request, reply) => {
     return reply.send({ adminId: request.admin.adminId, username: request.admin.username });
+  });
+
+  // ── GET /api/admin/users/:id/photos ────────────────────────────
+  fastify.get('/api/admin/users/:id/photos', { preHandler: requireAdmin }, async (request, reply) => {
+    const { id } = request.params;
+    const { dateRange = 'last7days' } = request.query;
+
+    let dateFilter;
+    if (dateRange === 'today') {
+      dateFilter = `date('now')`;
+    } else if (dateRange === 'last7days') {
+      dateFilter = `date('now', '-7 days')`;
+    } else if (dateRange === 'last30days') {
+      dateFilter = `date('now', '-30 days')`;
+    } else {
+      return reply.status(400).send({ error: 'Invalid date range' });
+    }
+
+    const user = await pool.query('SELECT id, name, phone FROM users WHERE id = $1', [id]);
+    if (!user.rows[0]) return reply.status(404).send({ error: 'User not found' });
+
+    const photos = await pool.query(
+      `SELECT dl.id, dl.session, dl.status, dl.photo_path, dl.submitted_at,
+              dl.scheduled_date, dl.ai_validation_result, m.name as medicine_name, m.dosage,
+              m.id as medicine_id
+       FROM dose_logs dl
+       JOIN medicines m ON m.id = dl.medicine_id
+       WHERE dl.user_id = $1 AND dl.photo_path IS NOT NULL
+         AND dl.scheduled_date >= date(${dateFilter})
+       ORDER BY dl.scheduled_date DESC, dl.session ASC`,
+      [id]
+    );
+
+    return reply.send({
+      user: user.rows[0],
+      dateRange,
+      totalPhotos: photos.rows.length,
+      photos: photos.rows.map(row => ({
+        doseId: row.id,
+        date: row.scheduled_date,
+        session: row.session,
+        status: row.status,
+        medicine: {
+          id: row.medicine_id,
+          name: row.medicine_name,
+          dosage: row.dosage,
+        },
+        photoPath: row.photo_path,
+        submittedAt: row.submitted_at,
+        validation: row.ai_validation_result ? JSON.parse(row.ai_validation_result) : null,
+      })),
+    });
   });
 }

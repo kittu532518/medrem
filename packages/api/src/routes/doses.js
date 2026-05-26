@@ -228,4 +228,81 @@ export async function doseRoutes(fastify) {
       message: 'Dose marked as partially verified. Caregiver has been notified.',
     });
   });
+
+  // GET /api/doses/history/today - Get all photos from today
+  fastify.get('/api/doses/history/today', { preHandler: authenticate }, async (request, reply) => {
+    const userId = request.user.id;
+    const today = new Date().toISOString().split('T')[0];
+
+    const result = await pool.query(
+      `SELECT dl.id, dl.session, dl.status, dl.photo_path, dl.submitted_at,
+              dl.ai_validation_result, m.name as medicine_name, dl.medicine_id,
+              m.dosage, dl.scheduled_date
+       FROM dose_logs dl
+       JOIN medicines m ON m.id = dl.medicine_id
+       WHERE dl.user_id = $1 AND dl.scheduled_date = $2
+       ORDER BY dl.session ASC`,
+      [userId, today]
+    );
+
+    return reply.send({
+      today,
+      photos: result.rows.map(row => ({
+        doseId: row.id,
+        session: row.session,
+        status: row.status,
+        medicine: {
+          id: row.medicine_id,
+          name: row.medicine_name,
+          dosage: row.dosage,
+        },
+        photoPath: row.photo_path,
+        submittedAt: row.submitted_at,
+        validation: row.ai_validation_result,
+      })),
+    });
+  });
+
+  // GET /api/doses/history/:dateRange - Get photos from date range (for patient history view)
+  fastify.get('/api/doses/history/:dateRange', { preHandler: authenticate }, async (request, reply) => {
+    const userId = request.user.id;
+    const { dateRange } = request.params; // Format: 'last7days' or 'last30days'
+
+    let dateFilter;
+    if (dateRange === 'last7days') {
+      dateFilter = `datetime('now', '-7 days')`;
+    } else if (dateRange === 'last30days') {
+      dateFilter = `datetime('now', '-30 days')`;
+    } else {
+      return reply.status(400).send({ error: 'Invalid date range' });
+    }
+
+    const result = await pool.query(
+      `SELECT dl.id, dl.session, dl.status, dl.photo_path, dl.submitted_at,
+              dl.scheduled_date, m.name as medicine_name, m.dosage
+       FROM dose_logs dl
+       JOIN medicines m ON m.id = dl.medicine_id
+       WHERE dl.user_id = $1 AND dl.scheduled_date >= date(${dateFilter})
+       ORDER BY dl.scheduled_date DESC, dl.session ASC`,
+      [userId]
+    );
+
+    return reply.send({
+      userId,
+      dateRange,
+      totalPhotos: result.rows.length,
+      photos: result.rows.map(row => ({
+        doseId: row.id,
+        date: row.scheduled_date,
+        session: row.session,
+        status: row.status,
+        medicine: {
+          name: row.medicine_name,
+          dosage: row.dosage,
+        },
+        photoPath: row.photo_path,
+        submittedAt: row.submitted_at,
+      })),
+    });
+  });
 }
