@@ -73,6 +73,12 @@ export default function Capture() {
     }
   };
 
+  const triggerFileInput = () => {
+    if (fileRef.current) {
+      fileRef.current.click();
+    }
+  };
+
   const handleRetake = () => {
     setResult(null);
     setPreview(null);
@@ -244,7 +250,7 @@ export default function Capture() {
             />
             <button
               className="btn-primary"
-              onClick={() => fileRef.current?.click()}
+              onClick={triggerFileInput}
               style={{ fontSize: '18px', padding: '18px' }}
             >
               📷 {t('capture.capture_btn')}

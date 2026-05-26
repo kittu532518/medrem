@@ -126,17 +126,37 @@ function StatsRow({ stats }) {
 function UserModal({ userId, onClose }) {
   const [detail, setDetail] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     api(`/users/${userId}`)
-      .then(setDetail)
-      .catch(console.error)
+      .then(data => {
+        console.log('User detail loaded:', data);
+        setDetail(data);
+        setError(null);
+      })
+      .catch(err => {
+        console.error('Error loading user detail:', err);
+        setError(err.message);
+        setDetail(null);
+      })
       .finally(() => setLoading(false));
   }, [userId]);
 
   if (loading) return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
       <div style={{ background: 'white', borderRadius: '16px', padding: '40px', fontSize: '18px' }}>Loading…</div>
+    </div>
+  );
+
+  if (error) return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '16px' }}>
+      <div style={{ background: 'white', borderRadius: '20px', width: '100%', maxWidth: '480px', padding: '28px', textAlign: 'center' }}>
+        <div style={{ fontSize: '24px', marginBottom: '16px' }}>❌</div>
+        <div style={{ fontWeight: '700', fontSize: '18px', marginBottom: '8px', color: C.danger }}>Error Loading Patient</div>
+        <div style={{ color: C.muted, fontSize: '14px', marginBottom: '24px' }}>{error}</div>
+        <button onClick={onClose} style={{ ...C.btn(), width: '100%' }}>Close</button>
+      </div>
     </div>
   );
 
