@@ -45,7 +45,8 @@ steps:
       - '--region=${_REGION}'
       - '--platform=managed'
       - '--allow-unauthenticated'
-      - '--set-env-vars=ANTHROPIC_API_KEY=${_ANTHROPIC_API_KEY},JWT_SECRET=${_JWT_SECRET},NODE_ENV=production'
+      - '--service-account=medrem-app@${PROJECT_ID}.iam.gserviceaccount.com'
+      - '--set-env-vars=GCP_PROJECT_ID=${PROJECT_ID},GCS_BUCKET=medrem-data-prod,ANTHROPIC_API_KEY=${_ANTHROPIC_API_KEY},JWT_SECRET=${_JWT_SECRET},NODE_ENV=production'
       - '--memory=512Mi'
       - '--cpu=1'
 
