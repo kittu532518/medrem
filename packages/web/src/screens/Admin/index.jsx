@@ -197,7 +197,12 @@ function UserModal({ userId, onClose }) {
                 <span style={{ color: C.muted, minWidth: '90px' }}>{log.scheduled_date}</span>
                 <span style={{ minWidth: '70px', textTransform: 'capitalize' }}>{log.session}</span>
                 <span style={{ minWidth: '140px', color: C.muted }}>{log.medicine_name}</span>
-                <span style={styles.badge(log.status === 'success' ? C.success : log.status === 'pending' ? C.warn : C.danger)}>
+                <span style={styles.badge(
+                  log.status === 'success' ? C.success
+                  : log.status === 'partial_success' ? C.warn
+                  : log.status === 'pending' ? C.blue
+                  : C.danger
+                )}>
                   {log.status}
                 </span>
               </div>
@@ -253,7 +258,7 @@ function Dashboard({ adminName, onLogout }) {
     try {
       await api(`/users/${user.id}`, { method: 'DELETE' });
       loadUsers(); loadStats();
-    } catch (err) { alert(err.message); }
+    } catch (err) { alert(`Delete failed: ${err.message}`); }
   };
 
   const totalPages = Math.ceil(total / LIMIT);

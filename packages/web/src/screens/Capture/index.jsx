@@ -139,6 +139,22 @@ export default function Capture() {
 
       <div style={{ padding: '20px 16px', flex: 1, overflowY: 'auto' }}>
         {/* Photo History */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+          <div />
+          <button
+            onClick={() => navigate('/photo-history')}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'var(--color-primary)',
+              cursor: 'pointer',
+              fontSize: '12px',
+              fontWeight: '600',
+            }}
+          >
+            View all →
+          </button>
+        </div>
         <PhotoHistory />
 
         {/* Camera guide */}

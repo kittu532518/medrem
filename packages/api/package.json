@@ -13,6 +13,7 @@
     "@fastify/cors": "^9.0.0",
     "@fastify/multipart": "^8.0.0",
     "@fastify/static": "^7.0.0",
+    "@google-cloud/storage": "^7.0.0",
     "@libsql/client": "^0.14.0",
     "dotenv": "^16.4.0",
     "exifr": "^7.1.3",

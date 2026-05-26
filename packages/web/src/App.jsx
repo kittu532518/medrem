@@ -5,6 +5,7 @@ import Login from './screens/Login/index.jsx';
 import Home from './screens/Home/index.jsx';
 import Capture from './screens/Capture/index.jsx';
 import History from './screens/History/index.jsx';
+import PhotoHistory from './screens/PhotoHistory/index.jsx';
 import Rx from './screens/Rx/index.jsx';
 import Profile from './screens/Profile/index.jsx';
 import Admin from './screens/Admin/index.jsx';
@@ -38,6 +39,7 @@ export default function App() {
         <Route path="/" element={<RequireAuth><ProtectedLayout><Home /></ProtectedLayout></RequireAuth>} />
         <Route path="/capture/:doseId" element={<RequireAuth><Capture /></RequireAuth>} />
         <Route path="/history" element={<RequireAuth><ProtectedLayout><History /></ProtectedLayout></RequireAuth>} />
+        <Route path="/photo-history" element={<RequireAuth><ProtectedLayout><PhotoHistory /></ProtectedLayout></RequireAuth>} />
         <Route path="/rx" element={<RequireAuth><ProtectedLayout><Rx /></ProtectedLayout></RequireAuth>} />
         <Route path="/profile" element={<RequireAuth><ProtectedLayout><Profile /></ProtectedLayout></RequireAuth>} />
 

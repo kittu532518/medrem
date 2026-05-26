@@ -8,6 +8,7 @@ import { fileURLToPath } from 'url';
 import fs from 'fs';
 
 import { initDb } from './db.js';
+import { syncDatabaseFromCloud, syncDatabaseToCloud, startPeriodicSync } from './gcs-sync.js';
 import { authRoutes } from './routes/auth.js';
 import { userRoutes } from './routes/users.js';
 import { prescriptionRoutes } from './routes/prescriptions.js';
@@ -72,12 +73,32 @@ fastify.setErrorHandler((error, request, reply) => {
 const PORT = parseInt(process.env.PORT || '8080');
 
 try {
+  // Sync database from Google Cloud Storage (if running on Cloud Run)
+  await syncDatabaseFromCloud();
+
+  // Initialize database
   await initDb();
+
+  // Start server
   await fastify.listen({ port: PORT, host: '0.0.0.0' });
   console.log(`\n🚀  MedRem API   → http://localhost:${PORT}`);
   console.log(`🏥  Admin panel  → http://localhost:5173/admin`);
   console.log(`❤️   Health      → http://localhost:${PORT}/health\n`);
+
+  // Start periodic sync to Google Cloud Storage
+  startPeriodicSync();
+
+  // Start medicine reminder scheduler
   startScheduler();
+
+  // Graceful shutdown - sync data before exit
+  process.on('SIGTERM', async () => {
+    console.log('\n[Server] Graceful shutdown initiated...');
+    await fastify.close();
+    await syncDatabaseToCloud();
+    console.log('[Server] ✓ Data synced, goodbye!');
+    process.exit(0);
+  });
 } catch (err) {
   console.error('Failed to start server:', err);
   process.exit(1);
