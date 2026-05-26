@@ -27,7 +27,26 @@ export default function Login() {
       setStage('otp');
       setError('');
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to send OTP');
+      // ✅ NEW: Handle specific error cases
+      const status = err.response?.status;
+      const code = err.response?.data?.code;
+      const message = err.response?.data?.message;
+
+      if (status === 404 && code === 'PHONE_NOT_REGISTERED') {
+        setError(
+          'Phone number not registered. ' +
+          'Please complete registration first to create an account.'
+        );
+      } else if (status === 403 && code === 'ACCOUNT_DISABLED') {
+        setError(
+          'Your account has been disabled. ' +
+          'Please contact support for assistance.'
+        );
+      } else if (status === 400) {
+        setError('Please enter a valid phone number');
+      } else {
+        setError(message || err.response?.data?.error || 'Failed to send OTP');
+      }
     } finally {
       setLoading(false);
     }
@@ -49,7 +68,32 @@ export default function Login() {
       localStorage.setItem('medrem_user', JSON.stringify(response.data.user));
       navigate('/', { replace: true });
     } catch (err) {
-      setError(err.response?.data?.message || 'Invalid OTP');
+      // ✅ NEW: Handle specific error cases
+      const status = err.response?.status;
+      const code = err.response?.data?.code;
+      const message = err.response?.data?.message;
+      const userId = err.response?.data?.userId;
+
+      if (status === 404 && code === 'USER_NOT_FOUND') {
+        setError('User account not found. Please register first.');
+      } else if (status === 403 && code === 'ACCOUNT_DISABLED') {
+        setError(
+          'Your account has been disabled. ' +
+          'Please contact support for assistance.'
+        );
+      } else if (status === 403 && code === 'NO_MEDICINES') {
+        // User registered but hasn't added medicines yet
+        setError(
+          'Please complete your registration first. ' +
+          'You need to upload a prescription and add your medicines.'
+        );
+        // Optional: Redirect to onboarding/prescriptions
+        // navigate('/onboarding', { state: { userId } });
+      } else if (status === 400) {
+        setError('Invalid or expired OTP. Please try again.');
+      } else {
+        setError(message || err.response?.data?.error || 'Login failed');
+      }
     } finally {
       setLoading(false);
     }

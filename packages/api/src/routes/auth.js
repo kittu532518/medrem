@@ -11,6 +11,30 @@ export async function authRoutes(fastify) {
       return reply.status(400).send({ error: 'A valid phone number is required' });
     }
 
+    // ✅ NEW: Validate phone number exists in database
+    const userResult = await pool.query(
+      'SELECT id, is_disabled FROM users WHERE phone = $1',
+      [phone]
+    );
+
+    if (!userResult.rows[0]) {
+      // Phone not registered in system
+      return reply.status(404).send({
+        error: 'Phone number not registered',
+        message: 'Please complete registration first',
+        code: 'PHONE_NOT_REGISTERED',
+      });
+    }
+
+    // Check if account is disabled
+    if (userResult.rows[0].is_disabled) {
+      return reply.status(403).send({
+        error: 'Account disabled',
+        message: 'Please contact support',
+        code: 'ACCOUNT_DISABLED',
+      });
+    }
+
     // Generate 6-digit OTP and store in DB (persists across server restarts)
     const otp      = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString(); // 10 min
@@ -70,19 +94,43 @@ export async function authRoutes(fastify) {
       return reply.status(400).send({ error: 'Invalid or expired OTP. Please try again.' });
     }
 
-    // Find existing user or create new one
+    // ✅ NEW: Find user - must exist (no auto-creation)
     let result = await pool.query('SELECT * FROM users WHERE phone = $1', [phone]);
     let user   = result.rows[0];
 
     if (!user) {
-      const id = generateId();
-      await pool.query('INSERT INTO users (id, phone) VALUES ($1, $2)', [id, phone]);
-      result = await pool.query('SELECT * FROM users WHERE id = $1', [id]);
-      user   = result.rows[0];
+      // User doesn't exist - shouldn't happen if send-otp validation worked
+      return reply.status(404).send({
+        error: 'User not found',
+        message: 'Please register first',
+        code: 'USER_NOT_FOUND',
+      });
     }
 
     if (user.is_disabled) {
-      return reply.status(403).send({ error: 'Account disabled. Please contact support.' });
+      return reply.status(403).send({
+        error: 'Account disabled',
+        message: 'Please contact support',
+        code: 'ACCOUNT_DISABLED',
+      });
+    }
+
+    // ✅ NEW: Validate user has medicines (properly registered)
+    const medicinesResult = await pool.query(
+      'SELECT COUNT(*) as count FROM medicines WHERE user_id = $1 AND is_active = 1',
+      [user.id]
+    );
+
+    const hasMedicines = medicinesResult.rows[0]?.count > 0;
+
+    if (!hasMedicines) {
+      // User registered but hasn't added any medicines yet
+      return reply.status(403).send({
+        error: 'Incomplete profile',
+        message: 'Please complete your registration to add medicines',
+        code: 'NO_MEDICINES',
+        userId: user.id, // Return so they can navigate to onboarding
+      });
     }
 
     const token = generateToken(user.id);
@@ -94,7 +142,7 @@ export async function authRoutes(fastify) {
         phone:     user.phone,
         name:      user.name,
         language:  user.language,
-        isNewUser: !user.name,
+        hasMedicines: true,
       },
     });
   });
